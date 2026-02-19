@@ -1,0 +1,501 @@
+
+  <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Presentear – Lista de Produção</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="icon" href="data:,">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f0ede8;
+  --surface: #faf9f7;
+  --surface2: #e8e4dd;
+  --border: #d4cfc7;
+  --ink: #1a1714;
+  --ink-muted: #8a8480;
+  --accent: #c94a1e;
+  --accent2: #2c6e3f;
+  --mono: 'DM Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.05);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--display);min-height:100vh}
+
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.5;
+}
+
+/* ── HEADER ── */
+header{
+  background:var(--ink);color:var(--bg);
+  padding:0 20px;
+  position:sticky;top:0;z-index:100;
+  border-bottom:3px solid var(--accent);
+}
+.header-inner{
+  max-width:1200px;margin:0 auto;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;
+}
+.logo{display:flex;flex-direction:column;line-height:1;margin-right:4px}
+.logo-main{font-size:17px;font-weight:800;letter-spacing:-.5px;color:#fff}
+.logo-sub{font-family:var(--mono);font-size:8px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-top:2px}
+.divider-v{width:1px;height:30px;background:#333;flex-shrink:0}
+
+input[type="date"]{
+  background:#222;border:1px solid #444;color:#fff;
+  padding:7px 11px;font-family:var(--mono);font-size:13px;border-radius:6px;cursor:pointer;
+}
+input[type="date"]:focus{outline:none;border-color:var(--accent)}
+
+select#sectorSelect{
+  background:#222;border:1px solid #444;color:#fff;
+  padding:7px 10px;font-family:var(--display);font-size:13px;border-radius:6px;cursor:pointer;
+}
+select#sectorSelect:focus{outline:none;border-color:var(--accent)}
+
+.new-item-input{
+  background:#222;border:1px solid #444;color:#fff;
+  padding:7px 13px;font-family:var(--display);font-size:14px;border-radius:6px;
+  flex:1;min-width:160px;
+}
+.new-item-input:focus{outline:none;border-color:var(--accent)}
+.new-item-input::placeholder{color:#555}
+
+.btn{
+  font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:2px;
+  text-transform:uppercase;border:none;border-radius:6px;padding:8px 14px;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.btn-load{background:#2a2a2a;color:#888;border:1px solid #444}
+.btn-load:hover{background:#383838;color:#ccc}
+.btn-add{background:var(--accent);color:#fff}
+.btn-add:hover{background:#e05520;transform:translateY(-1px)}
+
+.rt-wrap{margin-left:auto;display:flex;align-items:center;gap:6px}
+.rt-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#444;transition:all .3s}
+.rt-dot.live{background:#3ecf6e;box-shadow:0 0 0 3px rgba(62,207,110,.2)}
+.rt-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#555;transition:color .3s}
+.rt-label.live{color:#3ecf6e}
+
+/* ── MAIN ── */
+main{max-width:1200px;margin:0 auto;padding:20px 16px 80px;position:relative;z-index:1}
+
+/* PROGRESS */
+.progress-top{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px 18px;margin-bottom:18px;
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  box-shadow:var(--shadow);
+}
+.progress-stats{display:flex;gap:22px;flex-wrap:wrap}
+.pstat{display:flex;flex-direction:column;gap:2px}
+.pstat .num{font-size:24px;font-weight:800;line-height:1}
+.pstat .lbl{font-family:var(--mono);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-muted)}
+.pstat.c-done .num{color:var(--accent2)}
+.pstat.c-pend .num{color:var(--accent)}
+.progress-bar-wrap{flex:1;min-width:180px}
+.progress-bar-bg{background:var(--surface2);border-radius:6px;height:10px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),#27ae60);border-radius:6px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.progress-pct{font-family:var(--mono);font-size:11px;color:var(--ink-muted);margin-top:5px;text-align:right}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:13px}
+
+/* CARD */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .2s;
+  display:flex;flex-direction:column;
+}
+.card:hover{box-shadow:var(--shadow-lg)}
+.card-head{
+  padding:11px 15px 9px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);position:relative;
+}
+.card-head::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:14px 0 0 0;
+}
+.card[data-sector="🖋️ LASER"] .card-head::before{background:#7c3aed}
+.card[data-sector="🎯 SUBLIMAÇÃO PLANA"] .card-head::before{background:#0e7490}
+.card[data-sector="🔺 SUBLIMAÇÃO CÔNICA"] .card-head::before{background:#0369a1}
+.card[data-sector="🖨️ IMPRESSORA UV"] .card-head::before{background:#b45309}
+.card[data-sector="✨ DTF UV"] .card-head::before{background:#6d28d9}
+.card[data-sector="👕 DTF Têxtil"] .card-head::before{background:#065f46}
+.card[data-sector="🔘 Botons"] .card-head::before{background:#9f1239}
+.card[data-sector="📦 Outros"] .card-head::before{background:#374151}
+
+.card-title{font-size:13px;font-weight:700;padding-left:10px;letter-spacing:-.2px}
+.card-badge{
+  font-family:var(--mono);font-size:10px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--ink-muted);
+  padding:2px 8px;border-radius:20px;transition:all .3s;
+}
+.card-badge.complete{background:rgba(44,110,63,.1);border-color:rgba(44,110,63,.3);color:var(--accent2)}
+
+.card-mini-bar{height:3px;background:var(--surface2)}
+.card-mini-fill{height:100%;background:var(--accent2);transition:width .4s ease}
+.card-body{padding:6px 0;flex:1}
+
+/* TASK ROW */
+.task-row{
+  display:flex;align-items:center;gap:10px;padding:8px 14px;
+  transition:background .12s;animation:rowIn .18s ease;
+}
+@keyframes rowIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+.task-row:hover{background:var(--surface2)}
+
+.task-check{
+  width:20px;height:20px;border-radius:6px;border:2px solid var(--border);
+  background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+}
+.task-check:hover{border-color:var(--accent2)}
+.task-row.done .task-check{background:var(--accent2);border-color:var(--accent2)}
+.check-icon{display:none}
+.task-row.done .check-icon{display:block}
+
+.task-text{
+  flex:1;font-size:14px;background:transparent;border:none;color:var(--ink);
+  font-family:var(--display);cursor:text;padding:2px 0;outline:none;line-height:1.3;
+}
+.task-row.done .task-text{text-decoration:line-through;color:var(--ink-muted)}
+.task-text:focus{background:var(--surface2);border-radius:4px;padding:2px 6px}
+
+.task-del{
+  width:24px;height:24px;border-radius:6px;border:none;background:transparent;
+  color:var(--ink-muted);cursor:pointer;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:all .15s;
+}
+.task-row:hover .task-del{opacity:1}
+.task-del:hover{background:#fee2e2;color:#dc2626}
+
+.card-empty{
+  padding:18px;text-align:center;
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--ink-muted);opacity:.5;
+}
+
+/* BOTTOM BAR */
+.bottom-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(240,237,232,.95);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);padding:9px 20px;
+  display:flex;align-items:center;justify-content:space-between;z-index:100;gap:10px;flex-wrap:wrap;
+}
+.bottom-info{font-family:var(--mono);font-size:11px;color:var(--ink-muted);letter-spacing:1px}
+.btn-dup{
+  font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  background:transparent;border:1px solid var(--border);color:var(--ink-muted);
+  padding:7px 14px;border-radius:6px;cursor:pointer;transition:all .15s;
+}
+.btn-dup:hover{border-color:var(--ink);color:var(--ink)}
+
+/* TOAST */
+.toast{
+  position:fixed;top:76px;right:18px;
+  background:var(--ink);color:#fff;
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;
+  padding:10px 16px;border-radius:8px;border-left:3px solid var(--accent2);
+  z-index:999;transform:translateX(130%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:var(--shadow-lg);
+}
+.toast.show{transform:translateX(0)}
+
+@media(max-width:640px){
+  .header-inner{gap:8px}
+  .new-item-input{min-width:120px}
+  select#sectorSelect{max-width:140px;font-size:12px}
+  .pstat .num{font-size:20px}
+  .logo-main{font-size:15px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-main">Presentear</span>
+      <span class="logo-sub">Produção</span>
+    </div>
+    <div class="divider-v"></div>
+
+    <input id="campoData" type="date"/>
+    <button class="btn btn-load" onclick="refresh()">↺ Carregar</button>
+    <select id="sectorSelect"></select>
+    <input id="newItem" class="new-item-input" type="text" placeholder="Novo item…"
+      onkeydown="if(event.key==='Enter')addItem()"/>
+    <button class="btn btn-add" onclick="addItem()">+ Adicionar</button>
+
+    <div class="rt-wrap">
+      <span class="rt-dot" id="rtDot"></span>
+      <span class="rt-label" id="rtLabel">conectando</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="progress-top">
+    <div class="progress-stats">
+      <div class="pstat"><span class="num" id="statTotal">0</span><span class="lbl">Total</span></div>
+      <div class="pstat c-done"><span class="num" id="statDone">0</span><span class="lbl">Feitos</span></div>
+      <div class="pstat c-pend"><span class="num" id="statPend">0</span><span class="lbl">Pendentes</span></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+  </div>
+
+  <div class="grid" id="quadros"></div>
+</main>
+
+<div class="bottom-bar">
+  <span class="bottom-info" id="bottomInfo">—</span>
+  <button class="btn-dup" onclick="duplicarAmanha()">⇉ Duplicar pendentes p/ amanhã</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════
+   CONFIGURAÇÃO — edite aqui
+══════════════════════════════ */
+const SUPABASE_URL     = "https://kqjfkyqptbrkthopcfad.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1yp49S5RLd0NlZOwQjnVmw_HJePvtje";
+
+const SECTORS = [
+  "🖋️ LASER",
+  "🎯 SUBLIMAÇÃO PLANA",
+  "🔺 SUBLIMAÇÃO CÔNICA",
+  "🖨️ IMPRESSORA UV",
+  "✨ DTF UV",
+  "👕 DTF Têxtil",
+  "🔘 Botons",
+  "📦 Outros",
+];
+
+/* ══════════════════════════════
+   SUPABASE
+══════════════════════════════ */
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let channel = null;
+let subscribedDate = null;
+
+async function loadTasks(dateStr) {
+  const { data, error } = await db
+    .from("tarefas").select("*")
+    .eq("data", dateStr)
+    .order("setor", { ascending: true })
+    .order("ordem",  { ascending: true });
+  if (error) { showToast("Erro ao carregar: " + error.message); return []; }
+  return data;
+}
+
+async function addItem() {
+  const dateStr = document.getElementById("campoData").value;
+  const setor   = document.getElementById("sectorSelect").value;
+  const text    = document.getElementById("newItem").value.trim();
+  if (!dateStr) { showToast("Escolha a data."); return; }
+  if (!text)    { showToast("Digite o item."); document.getElementById("newItem").focus(); return; }
+  const { error } = await db.from("tarefas").insert([{
+    data: dateStr, setor, item: text, feito: false, ordem: Date.now()
+  }]);
+  if (error) { showToast("Erro: " + error.message); return; }
+  document.getElementById("newItem").value = "";
+  document.getElementById("newItem").focus();
+}
+
+async function updateDone(id, feito) {
+  const { error } = await db.from("tarefas").update({ feito }).eq("id", id);
+  if (error) showToast("Erro: " + error.message);
+}
+
+async function updateText(id, item) {
+  if (!item.trim()) return;
+  const { error } = await db.from("tarefas").update({ item }).eq("id", id);
+  if (error) showToast("Erro: " + error.message);
+}
+
+async function deleteTask(id) {
+  const { error } = await db.from("tarefas").delete().eq("id", id);
+  if (error) showToast("Erro: " + error.message);
+}
+
+async function duplicarAmanha() {
+  const dateStr = document.getElementById("campoData").value;
+  if (!dateStr) return;
+  const tasks = await loadTasks(dateStr);
+  const pending = tasks.filter(t => !t.feito);
+  if (!pending.length) { showToast("Nenhum item pendente."); return; }
+
+  const d = new Date(dateStr + "T12:00:00");
+  d.setDate(d.getDate() + 1);
+  const next = d.toISOString().slice(0,10);
+
+  const rows = pending.map(t => ({
+    data: next, setor: t.setor, item: t.item, feito: false, ordem: Date.now() + Math.random()
+  }));
+  const { error } = await db.from("tarefas").insert(rows);
+  if (error) { showToast("Erro: " + error.message); return; }
+  showToast(pending.length + " itens duplicados para " + fmtDate(next));
+}
+
+/* ══════════════════════════════
+   RENDER
+══════════════════════════════ */
+function render(tasks) {
+  const q = document.getElementById("quadros");
+  q.innerHTML = "";
+
+  const bySector = {};
+  tasks.forEach(t => { (bySector[t.setor] ||= []).push(t); });
+
+  const total = tasks.length;
+  const done  = tasks.filter(t => t.feito).length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  document.getElementById("statTotal").textContent = total;
+  document.getElementById("statDone").textContent  = done;
+  document.getElementById("statPend").textContent  = total - done;
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressPct").textContent  = pct + "%";
+  const d = document.getElementById("campoData").value;
+  document.getElementById("bottomInfo").textContent =
+    fmtDate(d) + "  ·  " + total + " itens  ·  " + done + " concluídos";
+
+  const sectors = [...SECTORS];
+  Object.keys(bySector).forEach(s => { if (!sectors.includes(s)) sectors.push(s); });
+
+  sectors.forEach(sec => {
+    const secTasks = bySector[sec] || [];
+    const sDone = secTasks.filter(t => t.feito).length;
+    const sPct  = secTasks.length ? Math.round(sDone / secTasks.length * 100) : 0;
+    const complete = secTasks.length > 0 && sDone === secTasks.length;
+
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.sector = sec;
+    card.innerHTML = `
+      <div class="card-head">
+        <span class="card-title">${sec}</span>
+        <span class="card-badge${complete ? ' complete' : ''}">${sDone}/${secTasks.length}</span>
+      </div>
+      <div class="card-mini-bar"><div class="card-mini-fill" style="width:${sPct}%"></div></div>
+      <div class="card-body">
+        ${secTasks.length === 0
+          ? '<div class="card-empty">sem itens</div>'
+          : secTasks.map(t => rowHTML(t)).join("")}
+      </div>`;
+
+    q.appendChild(card);
+
+    secTasks.forEach(t => {
+      const row = card.querySelector(`[data-id="${t.id}"]`);
+      if (!row) return;
+      row.querySelector(".task-check").onclick = () => updateDone(t.id, !t.feito);
+      const txt = row.querySelector(".task-text");
+      txt.onblur = () => updateText(t.id, txt.value);
+      txt.onkeydown = e => { if (e.key === "Enter") txt.blur(); };
+      row.querySelector(".task-del").onclick = () => {
+        if (confirm("Remover este item?")) deleteTask(t.id);
+      };
+    });
+  });
+}
+
+function rowHTML(t) {
+  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  return `
+  <div class="task-row${t.feito ? ' done' : ''}" data-id="${t.id}">
+    <div class="task-check">
+      <svg class="check-icon" width="11" height="11" viewBox="0 0 11 11" fill="none">
+        <polyline points="1.5,5.5 4.5,8.5 9.5,2.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <input class="task-text" type="text" value="${esc(t.item)}"/>
+    <button class="task-del" title="Remover">✕</button>
+  </div>`;
+}
+
+/* ══════════════════════════════
+   REFRESH + REALTIME
+══════════════════════════════ */
+async function refresh() {
+  const dateStr = document.getElementById("campoData").value;
+  if (!dateStr) return;
+  const tasks = await loadTasks(dateStr);
+  render(tasks);
+  ensureRealtime(dateStr);
+}
+
+function ensureRealtime(dateStr) {
+  if (subscribedDate === dateStr && channel) return;
+  if (channel) { db.removeChannel(channel); channel = null; }
+  subscribedDate = dateStr;
+
+  const dot   = document.getElementById("rtDot");
+  const label = document.getElementById("rtLabel");
+
+  channel = db
+    .channel("tarefas-" + dateStr)
+    .on("postgres_changes",
+      { event: "*", schema: "public", table: "tarefas", filter: `data=eq.${dateStr}` },
+      async () => { render(await loadTasks(dateStr)); }
+    )
+    .subscribe(status => {
+      const live = status === "SUBSCRIBED";
+      dot.classList.toggle("live", live);
+      label.classList.toggle("live", live);
+      label.textContent = live ? "ao vivo" : status.toLowerCase();
+    });
+}
+
+/* ══════════════════════════════
+   HELPERS
+══════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+}
+
+function fmtDate(d) {
+  if (!d) return "—";
+  const [y,m,day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
+/* ══════════════════════════════
+   BOOT
+══════════════════════════════ */
+(function init() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  document.getElementById("campoData").value =
+    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+
+  const sel = document.getElementById("sectorSelect");
+  SECTORS.forEach(s => {
+    const o = document.createElement("option");
+    o.value = o.textContent = s;
+    sel.appendChild(o);
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>
