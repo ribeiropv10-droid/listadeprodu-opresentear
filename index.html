@@ -378,6 +378,39 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 80px;position:relative;z-i
 }
 .client-search:focus { outline: none; border-color: var(--accent2); }
 .client-search::placeholder { color: #555; }
+
+/* ── TAGS COMPACTAS ── */
+.task-client-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent2);
+  background: rgba(0,168,168,.1);
+  border: 1px solid rgba(0,168,168,.25);
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-qty-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.task-row.urgent .task-client-tag {
+  color: #d32f2f;
+  background: rgba(211,47,47,.08);
+  border-color: rgba(211,47,47,.25);
+}
 </style>
 </head>
 <body>
@@ -656,6 +689,8 @@ function render(tasks) {
 
 function rowHTML(t) {
   const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const clienteInfo = t.cliente ? `<span class="task-client-tag">${esc(t.cliente)}</span>` : '';
+  const qtyInfo = t.quantidade ? `<span class="task-qty-tag">×${t.quantidade}</span>` : '';
   return `
   <div class="task-row${t.feito ? ' done' : ''}${t.urgente ? ' urgent' : ''}" data-id="${t.id}">
     <div class="task-check">
@@ -671,8 +706,8 @@ function rowHTML(t) {
       </svg>
     </button>
     <input class="task-text" type="text" value="${esc(t.item)}"/>
-    <input class="task-client" type="text" value="${esc(t.cliente||'')}" placeholder="cliente"/>
-    <input class="task-qty" type="number" min="1" max="9999" value="${t.quantidade || ''}" placeholder="—" title="Quantidade"/>
+    ${clienteInfo}
+    ${qtyInfo}
     <button class="task-del" title="Remover">✕</button>
   </div>`;
 }
