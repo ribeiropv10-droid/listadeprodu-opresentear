@@ -547,11 +547,18 @@ async function duplicarAmanha() {
   const next = d.toISOString().slice(0,10);
 
   const rows = pending.map(t => ({
-    data: next, setor: t.setor, item: t.item, feito: false, ordem: Date.now() + Math.random()
+    data: next,
+    setor: t.setor,
+    item: t.item,
+    feito: false,
+    ordem: Date.now() + Math.random(),
+    quantidade: t.quantidade || null,
+    cliente: t.cliente || null,
+    urgente: t.urgente || false,
   }));
   const { error } = await db.from("tarefas").insert(rows);
   if (error) { showToast("Erro: " + error.message); return; }
-  showToast(pending.length + " itens duplicados para " + fmtDate(next));
+  showToast("✅ " + pending.length + " itens duplicados para " + fmtDate(next));
 }
 
 /* ══════════════════════════════
