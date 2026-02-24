@@ -326,33 +326,48 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 80px;position:relative;z-i
 .task-row.done .task-client { opacity:.4; }
 
 .task-urgent {
-  width: 24px; height: 24px;
+  width: 26px; height: 26px;
   border-radius: 6px; border: none;
   background: transparent;
-  font-size: 14px; cursor: pointer;
+  cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  opacity: .3;
+  opacity: .25;
   transition: all .15s;
+  padding: 0;
 }
-.task-urgent:hover { opacity: 1; transform: scale(1.2); }
-.task-row.urgent .task-urgent { opacity: 1; }
-.task-row.urgent { background: rgba(211,47,47,.04); border-left: 3px solid var(--accent); }
-.task-row.urgent .task-text { font-weight: 600; }
-.task-row.urgent.done { border-left-color: transparent; }
+.task-urgent:hover { opacity: 1; transform: scale(1.15); }
+.task-row.urgent .task-urgent { opacity: 1; animation: pulseUrgent 2s infinite; }
+.task-row.urgent { 
+  background: rgba(211,47,47,.06); 
+  border-left: 3px solid #d32f2f;
+  box-shadow: inset 0 0 0 1px rgba(211,47,47,.1);
+}
+.task-row.urgent .task-text { font-weight: 700; color: #b71c1c; }
+.task-row.urgent.done { border-left-color: transparent; background: transparent; }
+.task-row.urgent.done .task-text { color: var(--ink-muted); font-weight: 400; }
+@keyframes pulseUrgent {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
 
-/* Badge urgente no card header */
+/* Badge urgente no card */
 .urgent-count {
   font-family: var(--mono);
   font-size: 9px;
-  background: var(--accent);
+  background: #d32f2f;
   color: #fff;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 20px;
   margin-left: 4px;
   display: none;
+  align-items: center;
+  gap: 3px;
+  animation: pulseUrgent 2s infinite;
 }
-.urgent-count.visible { display: inline; }
+.urgent-count.visible { display: inline-flex; }
+
+
 
 /* Busca por cliente */
 .client-search {
@@ -607,7 +622,8 @@ function render(tasks) {
         <span class="card-title">${sec}</span>
         <span class="card-badge${complete ? ' complete' : ''}">${sDone}/${secTasks.length}</span>
         <span class="cap-badge ${capClass}" title="Capacidade: ${cap} itens">${capPct}% cap.</span>
-        <span class="urgent-count ${secTasks.filter(t=>t.urgente&&!t.feito).length > 0 ? 'visible' : ''}">⚡${secTasks.filter(t=>t.urgente&&!t.feito).length}</span>
+        <span class="urgent-count ${secTasks.filter(t=>t.urgente&&!t.feito).length > 0 ? 'visible' : ''}">
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:2px"><path d="M12 2L2 20h20L12 2z"/><path d="M12 9v5" stroke="#d32f2f" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#d32f2f"/></svg>${secTasks.filter(t=>t.urgente&&!t.feito).length} urgente(s)</span>
       </div>
       <div class="cap-bar-bg"><div class="cap-bar-fill" style="width:${capBarW}%;background:${capBarColor}"></div></div>
       <div class="card-body">
@@ -647,7 +663,13 @@ function rowHTML(t) {
         <polyline points="1.5,5.5 4.5,8.5 9.5,2.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
-    <button class="task-urgent" title="Marcar como urgente">⚡</button>
+    <button class="task-urgent" title="Marcar como urgente">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 20h20L12 2z" fill="#d32f2f" stroke="#d32f2f" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M12 9v5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="12" cy="17" r="1.1" fill="white"/>
+      </svg>
+    </button>
     <input class="task-text" type="text" value="${esc(t.item)}"/>
     <input class="task-client" type="text" value="${esc(t.cliente||'')}" placeholder="cliente"/>
     <input class="task-qty" type="number" min="1" max="9999" value="${t.quantidade || ''}" placeholder="—" title="Quantidade"/>
